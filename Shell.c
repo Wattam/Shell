@@ -4,6 +4,84 @@
 #include <stdio.h>
 #include <string.h>
 
+// Declaração das funções builtin (póprios do shell)
+int comandoCd(char **args);
+int comandoHelp(char **args);
+int comandoQuit(char **args);
+
+// Comandos builtin e suas respectivas funções
+char *builtinStrings[] = {
+	"cd",
+	"help",
+	"quit"
+};
+
+int (*builtinFuncao[])(char **) = {
+	&comandoCd,
+	&comandoHelp,
+	&comandoQuit
+};
+
+int numBuiltins(){
+	return sizeof(builtinStrings) / sizeof(char *);
+}
+
+// Código das funções builtin
+int comandoCd(char **args){
+	if(args[1] == NULL){
+		fprintf(stderr, "Era esperado um argumento para \"cd\"\n");
+	}
+	else{
+		if(chdir(args[1]) != 0){
+			perror("Erro");
+		}
+	}
+	
+	return 1;
+}
+
+int comandoHelp(char **args){
+	int i;
+	printf("Digite todos os comandos separados por virgula e aperte Enter.\n");
+	printf("Os comandos builtin são:\n");
+
+	for (i = 0; i < numBuiltins(); i++) {
+		printf("	%s\n", builtinStrings[i]);
+	}
+
+	return 1;
+}
+
+int comandoQuit(char **args){
+	return 0;
+}
+
+// Função roda, resposável por realizar o fork e gerar o novo processo
+int roda(char **args){
+	pid_t processID, waitProcessID;
+	int status;
+
+	processID = fork();
+	if(processID == 0){
+		// Processo filho
+		if (execvp(args[0], args) == -1) {
+			perror("Erro execvp");
+		}
+		exit(EXIT_FAILURE);
+	}
+	else if(processID < 0){
+		perror("Erro no fork");
+	}
+	else{
+		// Processo pai
+		do{
+			waitProcessID = waitpid(processID, &status, WUNTRACED);
+		}while(!WIFEXITED(status) && !WIFSIGNALED(status));
+	}
+
+	return 1;
+}
+
 // Função lerLinha, nela será feita a leitura do que foi digitado pelo usuário
 char *lerLinha(void){
 	char *linha = NULL;
