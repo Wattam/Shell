@@ -46,7 +46,7 @@ int comandoHelp(char **args){
 	printf("Os comandos builtin são:\n");
 
 	// Busca e apresenta ao usuário o nome de todos os comandos builtin
-	for (i = 0; i < numBuiltins(); i++) {
+	for(i = 0; i < numBuiltins(); i++){
 		printf("	%s\n", builtinStrings[i]);
 	}
 
@@ -65,7 +65,7 @@ int roda(char **args){
 	processID = fork();
 	if(processID == 0){
 		// Processo filho
-		if (execvp(args[0], args) == -1) {
+		if(execvp(args[0], args) == -1){
 			perror("Erro execvp");
 		}
 		exit(EXIT_FAILURE);
@@ -94,7 +94,7 @@ int executar(char **args){
 	}
 	
 	// Busca no vetor de argumentos se existe algum comando builtin
-	for (i = 0; i < numBuiltins(); i++) {
+	for(i = 0; i < numBuiltins(); i++){
 		if(strcmp(args[0], builtinStrings[i]) == 0){
 			return (*builtinFuncao[i])(args);
 		}
