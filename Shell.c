@@ -82,6 +82,7 @@ int roda(char **args){
 	return 1;
 }
 
+// Função executar, verifica se foi inserido um comando builtin e o executa, caso não chama a função roda()
 int executar(char **args){
 	int i;
 
@@ -117,6 +118,8 @@ char *lerLinha(void){
 	return linha;
 }
 
+#define tokenBufferSize 64
+#define tokenDelimiter " \t\r\n\a"
 // Função separarLinha, nela a linha lida a partir do usuário será dividida em argumentos
 char **separarLinha(char *linha){
 	int bufferSize = tokenBufferSize, posicao = 0;
