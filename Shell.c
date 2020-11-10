@@ -82,6 +82,23 @@ int roda(char **args){
 	return 1;
 }
 
+int executar(char **args){
+	int i;
+
+	if(args[0] == NULL){
+		// Caso receba um comando vazio
+		return 1;
+	}
+
+	for (i = 0; i < numBuiltins(); i++) {
+		if(strcmp(args[0], builtinStrings[i]) == 0){
+			return (*builtinFuncao[i])(args);
+		}
+	}
+
+	return roda(args);
+}
+
 // Função lerLinha, nela será feita a leitura do que foi digitado pelo usuário
 char *lerLinha(void){
 	char *linha = NULL;
@@ -112,7 +129,7 @@ char **separarLinha(char *linha){
 	}
 
 	token = strtok(linha, tokenDelimiter);
-	while (token != NULL){
+	while(token != NULL){
 		tokens[posicao] = token;
 		posicao++;
 
@@ -128,6 +145,7 @@ char **separarLinha(char *linha){
 		token = strtok(NULL, tokenDelimiter);
 	}
 	tokens[posicao] = NULL;
+	
 	return tokens;
 }
 
