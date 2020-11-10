@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-// Declaração das funções builtin (póprios do shell)
+// Declaração das funções builtin (próprias do shell)
 int comandoCd(char **args);
 int comandoHelp(char **args);
 int comandoQuit(char **args);
@@ -45,6 +45,7 @@ int comandoHelp(char **args){
 	printf("Digite todos os comandos separados por virgula e aperte Enter.\n");
 	printf("Os comandos builtin são:\n");
 
+	// Busca e apresenta ao usuário o nome de todos os comandos builtin
 	for (i = 0; i < numBuiltins(); i++) {
 		printf("	%s\n", builtinStrings[i]);
 	}
@@ -70,6 +71,7 @@ int roda(char **args){
 		exit(EXIT_FAILURE);
 	}
 	else if(processID < 0){
+		// Caso o fork falhe será gerada uma mensagem para o usuário e ele poderá digitar um novo comando
 		perror("Erro no fork");
 	}
 	else{
@@ -90,7 +92,8 @@ int executar(char **args){
 		// Caso receba um comando vazio
 		return 1;
 	}
-
+	
+	// Busca no vetor de argumentos se existe algum comando builtin
 	for (i = 0; i < numBuiltins(); i++) {
 		if(strcmp(args[0], builtinStrings[i]) == 0){
 			return (*builtinFuncao[i])(args);
@@ -105,8 +108,8 @@ char *lerLinha(void){
 	char *linha = NULL;
 	ssize_t bufferSize = 0;
 
-	if (getline(&linha, &bufferSize, stdin) == -1){
-		if (feof(stdin)){
+	if(getline(&linha, &bufferSize, stdin) == -1){
+		if(feof(stdin)){
 			exit(EXIT_SUCCESS);  // Chegou ao fim do arquivo
 		}
 		else{
@@ -118,9 +121,43 @@ char *lerLinha(void){
 	return linha;
 }
 
+// Função separarVirgula(), separa os comandos concatenados por vírgula
 #define tokenBufferSize 64
-#define tokenDelimiter " \t\r\n\a"
+char **separarVirgula(char *linha){
+	int bufferSize = tokenBufferSize, posicao = 0;
+	char **tokensVirgula = malloc(bufferSize * sizeof(char*));
+	char *tokenVirgula;
+
+	if(!tokensVirgula){
+		fprintf(stderr, "Erro de alocacao\n");
+		exit(EXIT_FAILURE);
+	}
+	
+	tokenVirgula = strtok(linha, ",");
+	while(tokenVirgula != NULL){
+		tokensVirgula[posicao] = tokenVirgula;
+		posicao++;
+
+		if(posicao >= bufferSize){
+			bufferSize += tokenBufferSize;
+			tokensVirgula = realloc(tokensVirgula, bufferSize * sizeof(char*));
+			if(!tokensVirgula){
+				fprintf(stderr, "Erro de alocacao\n");
+				exit(EXIT_FAILURE);
+			}
+		}
+		
+		tokenVirgula = strtok(NULL, ",");
+	}
+	tokensVirgula[posicao] = NULL;
+	
+	// Retorna um vetor de argumentos com os comandos após serem separados por vírgulas
+	return tokensVirgula;
+}
+
 // Função separarLinha, nela a linha lida a partir do usuário será dividida em argumentos
+#define tokenBufferSize 64
+#define tokenDelimiter " \t\r\n\a" // Define qualquer tipo de espaço como um delimitador para splitar os argumentos
 char **separarLinha(char *linha){
 	int bufferSize = tokenBufferSize, posicao = 0;
 	char **tokens = malloc(bufferSize * sizeof(char*));
@@ -149,24 +186,41 @@ char **separarLinha(char *linha){
 	}
 	tokens[posicao] = NULL;
 	
+	// Retorna um vetor de argumentos com os comandos já splitados
 	return tokens;
 }
 
-// Função loop, nela estarão as funções de ler a linha digitada pelo usuário, separá-la em argumentos e depois executá-los
+// Função loop, nela é feita a leitura da entrada inserida pelo usuário, depois é separada de acordo com as vírgulas,
+// os argumentos são splitados de acordo com os espaços e finalmente são executados
 void loop(void){
-	char *linha;
+	char *linha, *fim;
 	char **args;
-	int status;
+	char **argsPorVirgula;
+	int status = 1, posicao = 0;
 
 	do{
 		printf("> ");
 		linha = lerLinha();
-		args = separarLinha(linha);
-		status = executar(args);
-
+		argsPorVirgula = separarVirgula(linha);
+		
+		while(argsPorVirgula[posicao] != NULL){
+			
+			if(argsPorVirgula[posicao] != NULL){
+				args = separarLinha(argsPorVirgula[posicao]);
+				status = executar(args);
+				
+				free(args);
+				posicao++;
+				
+				if(status == 0){
+					break;
+				}	
+			}
+		}
+		free(argsPorVirgula);
 		free(linha);
-		free(args);
-	}while(status);
+		posicao = 0;
+	}while(status != 0);
 }
 
 int main(int argc, char **argv){
